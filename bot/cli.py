@@ -109,8 +109,8 @@ def print_error(text: str):
     print(f"  ❌ {text}")
 
 
-def print_info(text: str):
-    print(f"  ℹ️  {text}")
+def print_info(text: str, **kwargs):
+    print(f"  ℹ️  {text}", **kwargs)
 
 
 def print_warn(text: str):
