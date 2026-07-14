@@ -26,12 +26,12 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lines = [
         "🟢 **Bot Status**\n",
-        f"⏱ Uptime : {int(uptime_hours)}h {int(uptime_minutes)}m",
-        f"👥 Sessions actives : {all_sessions['active_sessions']}",
+        f"⏱ Uptime: {int(uptime_hours)}h {int(uptime_minutes)}m",
+        f"👥 Active sessions: {all_sessions['active_sessions']}",
     ]
 
     if all_sessions["sessions"]:
-        lines.append("\n**Sessions :**")
+        lines.append("\n**Sessions:**")
         for uid, info in all_sessions["sessions"].items():
             status = "🔄" if info.get("is_busy") else "✅"
             lines.append(
@@ -39,7 +39,7 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"({info['message_count']} msgs, idle {info['idle_minutes']}m)"
             )
 
-    lines.append(f"\n🔧 Version : 1.0.0")
+    lines.append(f"\n🔧 Version: 1.0.0")
 
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
@@ -68,7 +68,7 @@ async def restart_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.create_conversation(user_id, model)
 
     await update.message.reply_text(
-        f"🔄 Session redémarrée !\n{result}",
+        f"🔄 Session restarted!\n{result}",
         parse_mode="Markdown",
     )
     logger.info(f"User {user_id} restarted their session")

@@ -106,7 +106,7 @@ async def _handle_streaming(
     """Handle chat in streaming mode — progressively edit message with new content."""
 
     # Send initial placeholder
-    sent_message = await update.message.reply_text("⏳ _Réflexion en cours..._", parse_mode="Markdown")
+    sent_message = await update.message.reply_text("⏳ _Thinking..._", parse_mode="Markdown")
 
     full_text = ""
     last_edit_time = 0
@@ -135,7 +135,7 @@ async def _handle_streaming(
 
     except Exception as e:
         logger.error(f"Streaming error: {e}", exc_info=True)
-        full_text = full_text or f"❌ Erreur : {str(e)}"
+        full_text = full_text or f"❌ Error: {str(e)}"
 
     # Final edit with complete response
     if full_text:

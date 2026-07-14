@@ -12,28 +12,28 @@ logger = logging.getLogger(__name__)
 WELCOME_MESSAGE = """
 🤖 **AGY Telegram Bot**
 
-Salut ! Je suis ton bridge vers **Antigravity** (AGY).
-Envoie-moi un message et je le transmettrai à AGY.
+Hey! I'm your bridge to **Antigravity** (AGY).
+Send me a message and I'll forward it to AGY.
 
-**Commandes disponibles :**
+**Available commands:**
 
 💬 **Chat**
-• Envoie un message texte → je le forward à AGY
-• `/new` — Nouvelle conversation (reset le contexte)
+• Send a text message → I'll forward it to AGY
+• `/new` — New conversation (reset context)
 
-🤖 **Modèles**
-• `/model` — Voir le modèle actuel
-• `/models` — Lister les modèles disponibles
-• `/model <nom>` — Changer de modèle
+🤖 **Models**
+• `/model` — View current model
+• `/models` — List available models
+• `/model <name>` — Switch model
 
 📊 **Stats**
-• `/quota` — Statistiques d'utilisation
-• `/status` — État du bot et de la session
+• `/quota` — Usage statistics
+• `/status` — Bot and session status
 
-🔧 **Gestion**
-• `/history` — Derniers messages de la session
-• `/clear` — Effacer tout l'historique
-• `/restart` — Redémarrer la session AGY
+🔧 **Management**
+• `/history` — Recent messages from the session
+• `/clear` — Clear all history
+• `/restart` — Restart the AGY session
 
 💡 _Powered by Google Antigravity SDK_
 """

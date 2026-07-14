@@ -48,22 +48,22 @@ async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = context.bot_data.get("db")
 
     if not db:
-        await update.message.reply_text("❌ Base de données non disponible.")
+        await update.message.reply_text("❌ Database not available.")
         return
 
     conv = await db.get_active_conversation(user_id)
     if not conv:
         await update.message.reply_text(
-            "ℹ️ Aucune conversation active.\nEnvoie un message pour en démarrer une !"
+            "ℹ️ No active conversation.\nSend a message to start one!"
         )
         return
 
     messages = await db.get_messages(conv["id"], limit=20)
     if not messages:
-        await update.message.reply_text("ℹ️ Aucun message dans cette conversation.")
+        await update.message.reply_text("ℹ️ No messages in this conversation.")
         return
 
-    lines = [f"📜 **Historique** (derniers {len(messages)} messages)\n"]
+    lines = [f"📜 **History** (last {len(messages)} messages)\n"]
 
     for msg in messages:
         role_emoji = "👤" if msg["role"] == "user" else "🤖"
@@ -88,16 +88,16 @@ async def clear_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = context.bot_data.get("db")
 
     if not db:
-        await update.message.reply_text("❌ Base de données non disponible.")
+        await update.message.reply_text("❌ Database not available.")
         return
 
     count = await db.clear_history(user_id)
 
     if count > 0:
         await update.message.reply_text(
-            f"🗑 Historique effacé ! ({count} conversation(s) supprimée(s))"
+            f"🗑 History cleared! ({count} conversation(s) deleted)"
         )
     else:
-        await update.message.reply_text("ℹ️ Aucun historique à effacer.")
+        await update.message.reply_text("ℹ️ No history to clear.")
 
     logger.info(f"User {user_id} cleared history ({count} conversations)")

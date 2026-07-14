@@ -60,7 +60,7 @@ def require_auth_callback(allowed_user_ids: list[int]):
             if not user or user.id not in allowed_user_ids:
                 if update.callback_query:
                     await update.callback_query.answer(
-                        "🔒 Accès refusé.", show_alert=True
+                        "🔒 Access denied.", show_alert=True
                     )
                 return
 

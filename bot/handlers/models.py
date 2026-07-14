@@ -20,7 +20,7 @@ async def models_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session_info = agent_manager.get_session_info(update.effective_user.id)
     current_model = session_info["model"] if session_info else "default"
 
-    lines = ["🤖 **Modèles disponibles :**\n"]
+    lines = ["🤖 **Available models:**\n"]
     keyboard = []
 
     for model_id, description in AVAILABLE_MODELS.items():
@@ -32,7 +32,7 @@ async def models_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(button_text, callback_data=f"model:{model_id}")]
         )
 
-    lines.append(f"\n📌 Modèle actuel : `{current_model}`")
+    lines.append(f"\n📌 Current model: `{current_model}`")
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -54,13 +54,13 @@ async def model_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session_info = agent_manager.get_session_info(user_id)
         if session_info:
             await update.message.reply_text(
-                f"🤖 Modèle actuel : `{session_info['model']}`\n\n"
-                f"Utilise `/models` pour voir les options ou `/model <nom>` pour changer.",
+                f"🤖 Current model: `{session_info['model']}`\n\n"
+                f"Use `/models` to see options or `/model <name>` to switch.",
                 parse_mode="Markdown",
             )
         else:
             await update.message.reply_text(
-                "ℹ️ Aucune session active. Envoie un message pour en démarrer une !",
+                "ℹ️ No active session. Send a message to start one!",
             )
         return
 
@@ -98,8 +98,8 @@ async def _switch_model(
     if model_name not in AVAILABLE_MODELS and model_name != "default":
         available = ", ".join(f"`{m}`" for m in AVAILABLE_MODELS)
         text = (
-            f"❌ Modèle inconnu : `{model_name}`\n\n"
-            f"Modèles disponibles :\n{available}"
+            f"❌ Unknown model: `{model_name}`\n\n"
+            f"Available models:\n{available}"
         )
         if is_callback:
             await update.callback_query.edit_message_text(text, parse_mode="Markdown")

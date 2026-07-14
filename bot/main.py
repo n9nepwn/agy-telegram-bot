@@ -114,16 +114,16 @@ async def _post_init(application):
     from telegram import BotCommand
 
     commands = [
-        BotCommand("start", "Message de bienvenue"),
-        BotCommand("help", "Aide et commandes"),
-        BotCommand("new", "Nouvelle conversation"),
-        BotCommand("model", "Voir/changer le modèle"),
-        BotCommand("models", "Lister les modèles"),
-        BotCommand("quota", "Stats d'utilisation"),
-        BotCommand("history", "Historique de la session"),
-        BotCommand("clear", "Effacer l'historique"),
-        BotCommand("status", "État du bot"),
-        BotCommand("restart", "Redémarrer la session"),
+        BotCommand("start", "Welcome message"),
+        BotCommand("help", "Help and commands"),
+        BotCommand("new", "New conversation"),
+        BotCommand("model", "View/change model"),
+        BotCommand("models", "List models"),
+        BotCommand("quota", "Usage stats"),
+        BotCommand("history", "Session history"),
+        BotCommand("clear", "Clear history"),
+        BotCommand("status", "Bot status"),
+        BotCommand("restart", "Restart session"),
     ]
     await application.bot.set_my_commands(commands)
 

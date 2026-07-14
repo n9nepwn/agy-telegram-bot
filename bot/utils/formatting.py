@@ -97,22 +97,22 @@ def format_code_block(code: str, language: str = "") -> str:
 def format_session_info(info: dict) -> str:
     """Format session info dict into a readable Telegram message."""
     if not info:
-        return "ℹ️ Aucune session active."
+        return "ℹ️ No active session."
 
     lines = [
         "📊 **Session Info**\n",
-        f"🤖 Modèle : `{info['model']}`",
-        f"💬 Messages : {info['message_count']}",
-        f"⏱ Uptime : {info['uptime_minutes']} min",
-        f"😴 Inactif : {info['idle_minutes']} min",
+        f"🤖 Model: `{info['model']}`",
+        f"💬 Messages: {info['message_count']}",
+        f"⏱ Uptime: {info['uptime_minutes']} min",
+        f"😴 Idle: {info['idle_minutes']} min",
     ]
 
     if info.get("total_input_tokens") or info.get("total_output_tokens"):
-        lines.append(f"📥 Tokens in : {info['total_input_tokens']:,}")
-        lines.append(f"📤 Tokens out : {info['total_output_tokens']:,}")
+        lines.append(f"📥 Tokens in: {info['total_input_tokens']:,}")
+        lines.append(f"📤 Tokens out: {info['total_output_tokens']:,}")
 
     if info.get("is_busy"):
-        lines.append("\n⏳ **En cours de traitement...**")
+        lines.append("\n⏳ **Processing...**")
 
     return "\n".join(lines)
 
@@ -120,13 +120,13 @@ def format_session_info(info: dict) -> str:
 def format_usage_stats(stats: dict) -> str:
     """Format usage stats into a readable Telegram message."""
     return "\n".join([
-        "📊 **Statistiques d'utilisation**\n",
-        f"💬 Messages aujourd'hui : {stats.get('messages_24h', 0)}",
-        f"📅 Messages cette semaine : {stats.get('messages_7d', 0)}",
-        f"📆 Messages ce mois : {stats.get('messages_30d', 0)}",
-        f"📝 Total messages : {stats.get('total_messages', 0)}",
-        f"🗂 Total conversations : {stats.get('total_conversations', 0)}",
-        f"🔢 Total tokens : {stats.get('total_tokens', 0):,}",
+        "📊 **Usage Statistics**\n",
+        f"💬 Messages today: {stats.get('messages_24h', 0)}",
+        f"📅 Messages this week: {stats.get('messages_7d', 0)}",
+        f"📆 Messages this month: {stats.get('messages_30d', 0)}",
+        f"📝 Total messages: {stats.get('total_messages', 0)}",
+        f"🗂 Total conversations: {stats.get('total_conversations', 0)}",
+        f"🔢 Total tokens: {stats.get('total_tokens', 0):,}",
     ])
 
 

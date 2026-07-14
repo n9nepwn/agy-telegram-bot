@@ -129,7 +129,7 @@ class AGYSessionManager:
         session = await self.get_or_create_session(user_id)
 
         if session.is_busy:
-            return "⏳ Je suis encore en train de traiter ta dernière requête, patiente un instant..."
+            return "⏳ I am still processing your last request, please wait..."
 
         session.is_busy = True
         try:
@@ -155,7 +155,7 @@ class AGYSessionManager:
 
         except Exception as e:
             logger.error(f"AGY chat error for user {user_id}: {e}", exc_info=True)
-            return f"❌ Erreur AGY : {str(e)}"
+            return f"❌ AGY Error: {str(e)}"
         finally:
             session.is_busy = False
 
@@ -173,7 +173,7 @@ class AGYSessionManager:
         session = await self.get_or_create_session(user_id)
 
         if session.is_busy:
-            yield "⏳ Je suis encore en train de traiter ta dernière requête, patiente un instant..."
+            yield "⏳ I am still processing your last request, please wait..."
             return
 
         session.is_busy = True
@@ -197,7 +197,7 @@ class AGYSessionManager:
 
         except Exception as e:
             logger.error(f"AGY stream error for user {user_id}: {e}", exc_info=True)
-            yield f"❌ Erreur AGY : {str(e)}"
+            yield f"❌ AGY Error: {str(e)}"
         finally:
             session.is_busy = False
 
@@ -219,7 +219,7 @@ class AGYSessionManager:
 
         use_model = model or old_model
         await self.get_or_create_session(user_id, use_model)
-        return f"🔄 Nouvelle session créée ! (modèle : {use_model or 'default'})"
+        return f"🔄 New session created! (model: {use_model or 'default'})"
 
     async def change_model(self, user_id: int, model: str) -> str:
         """
@@ -233,11 +233,11 @@ class AGYSessionManager:
             Confirmation message.
         """
         if user_id in self._sessions and self._sessions[user_id].is_busy:
-            return "⏳ Impossible de changer de modèle pendant un traitement en cours."
+            return "⏳ Cannot change model while processing a request."
 
         await self.destroy_session(user_id)
         await self.get_or_create_session(user_id, model)
-        return f"✅ Modèle changé : **{model}**\nNouvelle session démarrée."
+        return f"✅ Model changed: **{model}**\nNew session started."
 
     async def destroy_session(self, user_id: int):
         """Close and remove a user's session."""
