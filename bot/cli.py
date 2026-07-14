@@ -136,11 +136,12 @@ def cmd_setup(args):
     if not get_agy_bin():
         print_error("AGY CLI is not installed or not found in PATH.")
         print_info("The AGY Telegram Bot requires the native Antigravity CLI.")
-        choice = input("  │  Would you like to install it now via pip? [Y/n]: ").strip().lower()
+        choice = input("  │  Would you like to install it now? [Y/n]: ").strip().lower()
         if choice != 'n':
-            print_info("Installing google-antigravity...")
+            print_info("Installing Antigravity CLI...")
             try:
-                subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "google-antigravity"], check=True)
+                # Need shell=True to pipe curl to bash
+                subprocess.run("curl -fsSL https://antigravity.google/cli/install.sh | bash", shell=True, check=True)
                 print_success("AGY CLI installed successfully!")
                 if not get_agy_bin():
                     print_error("AGY installed but not in PATH. Run `source ~/.profile` or restart terminal.")
