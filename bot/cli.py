@@ -176,36 +176,8 @@ def cmd_setup(args):
             print_error("Token is required! Run setup again when you have it.")
     print("  │")
 
-    # Step 2: Gemini API Key
-    print("  ├─ Step 2: Gemini API Key (AGY)")
-    print("  │")
-    current_gemini = env.get("GEMINI_API_KEY", "")
-    if current_gemini:
-        masked = current_gemini[:8] + "..." + current_gemini[-4:] if len(current_gemini) > 12 else "***"
-        print(f"  │  Current API key: {masked}")
-        change = input("  │  Change API key? [y/N]: ").strip().lower()
-        if change != "y":
-            print("  │  → Keeping existing API key")
-        else:
-            gemini_key = input("  │  Paste your Gemini API key (from aistudio.google.com): ").strip()
-            if gemini_key:
-                env["GEMINI_API_KEY"] = gemini_key
-                print_success("API key saved")
-    else:
-        print("  │  No Gemini API key configured.")
-        print("  │  Unlike the CLI, the Python SDK needs an API key to link to your account.")
-        print("  │  Get it free at: https://aistudio.google.com/app/apikey")
-        print("  │")
-        gemini_key = input("  │  Paste your Gemini API key: ").strip()
-        if gemini_key:
-            env["GEMINI_API_KEY"] = gemini_key
-            print_success("API key saved")
-        else:
-            print_error("Gemini API key is highly recommended for the SDK!")
-    print("  │")
-
-    # Step 3: Allowed User IDs
-    print("  ├─ Step 3: Authorized Users")
+    # Step 2: Allowed User IDs
+    print("  ├─ Step 2: Authorized Users")
     print("  │")
     current_ids = env.get("ALLOWED_USER_IDS", "")
     if current_ids:
@@ -222,8 +194,8 @@ def cmd_setup(args):
         print_warn("No users set — bot will reject all messages!")
     print("  │")
 
-    # Step 4: Default Model
-    print("  ├─ Step 4: Default Model")
+    # Step 3: Default Model
+    print("  ├─ Step 3: Default Model")
     print("  │")
     print("  │  Available models:")
     models = [
@@ -253,8 +225,8 @@ def cmd_setup(args):
             print_success(f"Model: {models[idx - 1][0]}")
     print("  │")
 
-    # Step 5: Streaming
-    print("  ├─ Step 5: Streaming Mode")
+    # Step 4: Streaming
+    print("  ├─ Step 4: Streaming Mode")
     print("  │")
     print("  │  Streaming = bot edits its message as the response comes in")
     current_streaming = env.get("ENABLE_STREAMING", "true")
@@ -267,8 +239,8 @@ def cmd_setup(args):
         print_success("Streaming enabled")
     print("  │")
 
-    # Step 6: Log level
-    print("  └─ Step 6: Log Level")
+    # Step 5: Log level
+    print("  └─ Step 5: Log Level")
     print("  ")
     current_level = env.get("LOG_LEVEL", "INFO")
     choice = input(f"    Log level [DEBUG/INFO/WARNING/ERROR] (current: {current_level}): ").strip().upper()
@@ -381,13 +353,6 @@ def cmd_status(args):
         print_item("Bot Token", masked)
     else:
         print_item("Bot Token", "❌ NOT SET")
-
-    gemini_key = env.get("GEMINI_API_KEY", "")
-    if gemini_key:
-        masked_gemini = gemini_key[:8] + "..." + gemini_key[-4:] if len(gemini_key) > 12 else "***"
-        print_item("Gemini API Key", masked_gemini)
-    else:
-        print_item("Gemini API Key", "❌ NOT SET")
 
     user_ids = env.get("ALLOWED_USER_IDS", "")
     if user_ids:
