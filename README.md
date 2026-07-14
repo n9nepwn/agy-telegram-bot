@@ -1,5 +1,7 @@
 # 🤖 AGY Telegram Bot
 
+> 🎨 **100% Vibecoded** — Ce projet a été entièrement généré par IA via [Google Antigravity](https://antigravity.google). Pas une seule ligne écrite à la main.
+
 > Bridge entre **Telegram** et **Google Antigravity** (AGY) — discute avec AGY depuis ton téléphone.
 
 ## 🚀 Features
