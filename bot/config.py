@@ -12,14 +12,29 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-# Available models that users can switch between
-AVAILABLE_MODELS = {
-    "gemini-2.5-pro": "Gemini 2.5 Pro — Best reasoning, slower",
-    "gemini-2.5-flash": "Gemini 2.5 Flash — Fast and capable",
-    "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite — Fastest, lightweight",
-    "claude-sonnet-4": "Claude Sonnet 4 — Balanced performance",
-    "claude-opus-4": "Claude Opus 4 — Most capable Claude",
-}
+import subprocess
+
+def get_available_models() -> list[str]:
+    """Dynamically fetch available models from the AGY CLI."""
+    try:
+        result = subprocess.run(
+            ["agy", "models"], 
+            capture_output=True, 
+            text=True, 
+            check=False
+        )
+        
+        output = result.stdout + result.stderr
+        if "not signed in" in output.lower():
+            logger.error("AGY CLI is not signed in! Run `agy prompt --print hi` to authenticate.")
+            return []
+            
+        # Parse output into a list of strings, removing empty lines and non-model lines
+        models = [line.strip() for line in result.stdout.split("\n") if line.strip() and not line.startswith("Welcome") and not line.startswith("▀")]
+        return models
+    except Exception as e:
+        logger.error(f"Failed to fetch models from AGY CLI: {e}")
+        return ["Gemini 3.1 Pro (High)"]  # Safe default fallback
 
 # Telegram message limits
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096

@@ -198,31 +198,32 @@ def cmd_setup(args):
     print("  ├─ Step 3: Default Model")
     print("  │")
     print("  │  Available models:")
-    models = [
-        ("gemini-2.5-pro", "Best reasoning, slower"),
-        ("gemini-2.5-flash", "Fast and capable"),
-        ("gemini-2.5-flash-lite", "Fastest, lightweight"),
-        ("claude-sonnet-4", "Balanced performance"),
-        ("claude-opus-4", "Most capable Claude"),
-    ]
-    for i, (name, desc) in enumerate(models, 1):
-        print(f"  │    {i}. {name} — {desc}")
-    print("  │    0. Use AGY default")
-    print("  │")
+    from bot.config import get_available_models
+    print_info("Fetching models from AGY...", end="\r")
+    models = get_available_models()
+    
+    if not models:
+        print_error("Failed to fetch models or AGY is not authenticated.")
+        print("  │  Run `agy --print hi` to verify your installation.")
+    else:
+        for i, name in enumerate(models, 1):
+            print(f"  │    {i}. {name}")
+        print("  │    0. Use AGY default")
+        print("  │")
 
     current_model = env.get("DEFAULT_MODEL", "")
     if current_model:
         print(f"  │  Current: {current_model}")
 
-    choice = input("  │  Choose model [0-5, Enter to keep]: ").strip()
+    choice = input(f"  │  Choose model [0-{len(models)}, Enter to keep]: ").strip()
     if choice.isdigit():
         idx = int(choice)
         if idx == 0:
             env["DEFAULT_MODEL"] = ""
             print_info("Using AGY default model")
         elif 1 <= idx <= len(models):
-            env["DEFAULT_MODEL"] = models[idx - 1][0]
-            print_success(f"Model: {models[idx - 1][0]}")
+            env["DEFAULT_MODEL"] = models[idx - 1]
+            print_success(f"Model: {models[idx - 1]}")
     print("  │")
 
     # Step 4: Streaming

@@ -7,7 +7,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import AVAILABLE_MODELS
+from bot.config import get_available_models
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,13 @@ async def models_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session_info = agent_manager.get_session_info(update.effective_user.id)
     current_model = session_info["model"] if session_info else "default"
 
+    available_models = get_available_models()
     lines = ["🤖 **Available models:**\n"]
     keyboard = []
 
-    for model_id, description in AVAILABLE_MODELS.items():
+    for model_id in available_models:
         marker = " ✅" if model_id == current_model else ""
-        lines.append(f"• `{model_id}`{marker}\n  _{description}_")
+        lines.append(f"• `{model_id}`{marker}")
 
         button_text = f"{'✅ ' if model_id == current_model else ''}{model_id}"
         keyboard.append(
@@ -65,7 +66,7 @@ async def model_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Switch model
-    model_name = context.args[0].lower()
+    model_name = " ".join(context.args)
     await _switch_model(update, context, user_id, model_name)
 
 
@@ -94,9 +95,11 @@ async def _switch_model(
     agent_manager = context.bot_data["agent_manager"]
     db = context.bot_data.get("db")
 
+    available_models = get_available_models()
+
     # Validate model name
-    if model_name not in AVAILABLE_MODELS and model_name != "default":
-        available = ", ".join(f"`{m}`" for m in AVAILABLE_MODELS)
+    if model_name not in available_models and model_name != "default":
+        available = ", ".join(f"`{m}`" for m in available_models)
         text = (
             f"❌ Unknown model: `{model_name}`\n\n"
             f"Available models:\n{available}"

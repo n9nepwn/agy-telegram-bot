@@ -1,16 +1,15 @@
 """
 AGY Agent Wrapper — manages Antigravity agent sessions per Telegram user.
 
-Each user gets their own Agent instance with independent conversation context.
-Sessions are automatically cleaned up after inactivity timeout.
+Uses the native `agy` CLI binary via subprocess to ensure it uses the machine's 
+existing Google AI Pro authentication, without requiring API keys.
 """
 
 import asyncio
 import logging
 import time
+import os
 from dataclasses import dataclass, field
-
-from google.antigravity import Agent, LocalAgentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class UserSession:
     """Tracks an active AGY session for a single Telegram user."""
 
     user_id: int
-    agent: Agent
+    project_id: str
     model: str
     created_at: float = field(default_factory=time.time)
     last_active: float = field(default_factory=time.time)
@@ -36,56 +35,46 @@ class UserSession:
 
 class AGYSessionManager:
     """
-    Manages AGY agent sessions for multiple Telegram users.
+    Manages AGY CLI sessions for multiple Telegram users.
 
-    Each user gets their own Agent instance. Sessions are created on demand
-    and cleaned up after a configurable inactivity timeout.
+    Uses `agy --project <project_id> --continue` to maintain conversation context.
     """
 
     def __init__(self, default_model: str = "", session_timeout_minutes: int = 60):
         self._sessions: dict[int, UserSession] = {}
         self._locks: dict[int, asyncio.Lock] = {}
         self._default_model = default_model
-        self._session_timeout = session_timeout_minutes * 60  # Convert to seconds
+        self._session_timeout = session_timeout_minutes * 60
         self._cleanup_task: asyncio.Task | None = None
+
+        # Find the agy binary
+        import shutil
+        self._agy_bin = shutil.which("agy")
+        if not self._agy_bin:
+            logger.warning("AGY CLI not found in PATH! Bot will not be able to generate responses.")
 
     async def start(self):
         """Start the session manager and background cleanup task."""
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
-        logger.info("AGY Session Manager started")
+        logger.info("AGY CLI Session Manager started")
 
     async def stop(self):
-        """Stop the session manager and close all sessions."""
+        """Stop the session manager."""
         if self._cleanup_task:
             self._cleanup_task.cancel()
             try:
                 await self._cleanup_task
             except asyncio.CancelledError:
                 pass
-
-        # Close all active sessions
-        for user_id in list(self._sessions.keys()):
-            await self.destroy_session(user_id)
-
-        logger.info("AGY Session Manager stopped — all sessions closed")
+        self._sessions.clear()
+        logger.info("AGY CLI Session Manager stopped")
 
     def _get_lock(self, user_id: int) -> asyncio.Lock:
-        """Get or create a lock for a specific user."""
         if user_id not in self._locks:
             self._locks[user_id] = asyncio.Lock()
         return self._locks[user_id]
 
     async def get_or_create_session(self, user_id: int, model: str = "") -> UserSession:
-        """
-        Get an existing session or create a new one for the user.
-
-        Args:
-            user_id: Telegram user ID.
-            model: Model to use. Falls back to user's last model or default.
-
-        Returns:
-            The user's active session.
-        """
         lock = self._get_lock(user_id)
         async with lock:
             if user_id in self._sessions:
@@ -93,65 +82,62 @@ class AGYSessionManager:
                 session.touch()
                 return session
 
-            # Create a new session
-            return await self._create_session(user_id, model or self._default_model)
+            # Create a new session (unique project ID)
+            project_id = f"tg_{user_id}_{int(time.time())}"
+            model_to_use = model or self._default_model
 
-    async def _create_session(self, user_id: int, model: str = "") -> UserSession:
-        """Create a new AGY agent session for a user."""
-        logger.info(f"Creating new AGY session for user {user_id} (model: {model or 'default'})")
+            session = UserSession(
+                user_id=user_id,
+                project_id=project_id,
+                model=model_to_use,
+            )
+            self._sessions[user_id] = session
+            logger.info(f"Session created for user {user_id} (project: {project_id}, model: {model_to_use})")
+            return session
 
-        config = LocalAgentConfig()
-
-        agent = Agent(config)
-        await agent.__aenter__()
-
-        session = UserSession(
-            user_id=user_id,
-            agent=agent,
-            model=model or "default",
-        )
-
-        self._sessions[user_id] = session
-        logger.info(f"Session created for user {user_id}")
-        return session
+    def _build_agy_command(self, session: UserSession, message: str) -> list[str]:
+        """Build the command list to run AGY CLI."""
+        cmd = [
+            self._agy_bin or "agy",
+            "--project", session.project_id,
+            "--continue",
+            "--print", message
+        ]
+        if session.model and session.model != "default":
+            cmd.extend(["--model", session.model])
+        return cmd
 
     async def chat(self, user_id: int, message: str) -> str:
-        """
-        Send a message to AGY and get the response.
-
-        Args:
-            user_id: Telegram user ID.
-            message: The user's message.
-
-        Returns:
-            AGY's response text.
-        """
+        """Send a message to AGY natively and get the full response."""
         session = await self.get_or_create_session(user_id)
 
         if session.is_busy:
             return "⏳ I am still processing your last request, please wait..."
 
+        if not self._agy_bin:
+            return "❌ Erreur interne : La commande `agy` n'est pas installée ou introuvable sur le serveur."
+
         session.is_busy = True
         try:
-            response = await session.agent.chat(message)
-            text = await response.text()
-
-            # Update session stats
+            cmd = self._build_agy_command(session, message)
+            
+            # Run the CLI
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                err = stderr.decode('utf-8').strip()
+                logger.error(f"AGY CLI error: {err}")
+                return f"❌ AGY Error: {err or 'Unknown CLI error'}"
+            
             session.message_count += 1
             session.touch()
-
-            # Try to get token usage if available
-            try:
-                if hasattr(response, 'usage'):
-                    usage = response.usage
-                    if hasattr(usage, 'input_tokens'):
-                        session.total_input_tokens += usage.input_tokens
-                    if hasattr(usage, 'output_tokens'):
-                        session.total_output_tokens += usage.output_tokens
-            except Exception:
-                pass  # Token tracking is best-effort
-
-            return text
+            return stdout.decode('utf-8').strip()
 
         except Exception as e:
             logger.error(f"AGY chat error for user {user_id}: {e}", exc_info=True)
@@ -160,40 +146,53 @@ class AGYSessionManager:
             session.is_busy = False
 
     async def chat_stream(self, user_id: int, message: str):
-        """
-        Send a message to AGY and yield response chunks as they arrive.
-
-        Args:
-            user_id: Telegram user ID.
-            message: The user's message.
-
-        Yields:
-            String chunks of the response.
-        """
+        """Send a message to AGY natively and yield response chunks as they arrive."""
         session = await self.get_or_create_session(user_id)
 
         if session.is_busy:
             yield "⏳ I am still processing your last request, please wait..."
             return
 
+        if not self._agy_bin:
+            yield "❌ Erreur interne : La commande `agy` n'est pas installée."
+            return
+
         session.is_busy = True
         try:
-            response = await session.agent.chat(message)
+            cmd = self._build_agy_command(session, message)
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            if not process.stdout:
+                yield "❌ Error: Could not read from AGY CLI"
+                return
 
-            # Try streaming first
             full_text = ""
-            try:
-                async for chunk in response:
-                    full_text += chunk
-                    yield chunk
-            except (TypeError, AttributeError):
-                # Fallback to non-streaming if streaming isn't supported
-                text = await response.text()
-                yield text
-                full_text = text
+            while True:
+                # Read chunks dynamically (100 bytes at a time for smooth streaming)
+                chunk = await process.stdout.read(100)
+                if not chunk:
+                    break
+                
+                text_chunk = chunk.decode('utf-8', errors='replace')
+                full_text += text_chunk
+                yield text_chunk
 
-            session.message_count += 1
-            session.touch()
+            await process.wait()
+
+            if process.returncode != 0:
+                stderr = await process.stderr.read()
+                err = stderr.decode('utf-8').strip()
+                logger.error(f"AGY CLI error during streaming: {err}")
+                if not full_text:
+                    yield f"❌ AGY Error: {err or 'Unknown CLI error'}"
+            else:
+                session.message_count += 1
+                session.touch()
 
         except Exception as e:
             logger.error(f"AGY stream error for user {user_id}: {e}", exc_info=True)
@@ -202,16 +201,6 @@ class AGYSessionManager:
             session.is_busy = False
 
     async def new_session(self, user_id: int, model: str = "") -> str:
-        """
-        Destroy the current session and create a new one (fresh context).
-
-        Args:
-            user_id: Telegram user ID.
-            model: Optional model override for the new session.
-
-        Returns:
-            Confirmation message.
-        """
         old_model = ""
         if user_id in self._sessions:
             old_model = self._sessions[user_id].model
@@ -222,16 +211,6 @@ class AGYSessionManager:
         return f"🔄 New session created! (model: {use_model or 'default'})"
 
     async def change_model(self, user_id: int, model: str) -> str:
-        """
-        Change the model for a user's session (requires session restart).
-
-        Args:
-            user_id: Telegram user ID.
-            model: The new model name.
-
-        Returns:
-            Confirmation message.
-        """
         if user_id in self._sessions and self._sessions[user_id].is_busy:
             return "⏳ Cannot change model while processing a request."
 
@@ -240,19 +219,11 @@ class AGYSessionManager:
         return f"✅ Model changed: **{model}**\nNew session started."
 
     async def destroy_session(self, user_id: int):
-        """Close and remove a user's session."""
         if user_id in self._sessions:
-            session = self._sessions[user_id]
-            try:
-                await session.agent.__aexit__(None, None, None)
-                logger.info(f"Session closed for user {user_id}")
-            except Exception as e:
-                logger.error(f"Error closing session for user {user_id}: {e}")
-            finally:
-                del self._sessions[user_id]
+            del self._sessions[user_id]
+            logger.info(f"Session closed for user {user_id}")
 
     def get_session_info(self, user_id: int) -> dict | None:
-        """Get info about a user's current session."""
         if user_id not in self._sessions:
             return None
 
@@ -271,7 +242,6 @@ class AGYSessionManager:
         }
 
     def get_all_sessions_info(self) -> dict:
-        """Get summary info about all active sessions."""
         return {
             "active_sessions": len(self._sessions),
             "sessions": {
@@ -280,21 +250,17 @@ class AGYSessionManager:
         }
 
     async def _cleanup_loop(self):
-        """Periodically clean up inactive sessions."""
         while True:
             try:
-                await asyncio.sleep(300)  # Check every 5 minutes
+                await asyncio.sleep(300)
                 now = time.time()
                 expired = [
-                    uid
-                    for uid, session in self._sessions.items()
-                    if (now - session.last_active) > self._session_timeout
-                    and not session.is_busy
+                    uid for uid, session in self._sessions.items()
+                    if (now - session.last_active) > self._session_timeout and not session.is_busy
                 ]
                 for uid in expired:
                     logger.info(f"Cleaning up inactive session for user {uid}")
                     await self.destroy_session(uid)
-
             except asyncio.CancelledError:
                 break
             except Exception as e:
