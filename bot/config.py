@@ -13,12 +13,36 @@ logger = logging.getLogger(__name__)
 
 
 import subprocess
+import shutil
+import os
+
+def get_agy_bin() -> str | None:
+    """Find the agy binary path."""
+    bin_path = shutil.which("agy")
+    if bin_path:
+        return bin_path
+    
+    # Common fallback paths
+    fallbacks = [
+        os.path.expanduser("~/.local/bin/agy"),
+        os.path.expanduser("~/.gemini/bin/agy"),
+        "/usr/local/bin/agy"
+    ]
+    for p in fallbacks:
+        if os.path.exists(p):
+            return p
+    return None
 
 def get_available_models() -> list[str]:
     """Dynamically fetch available models from the AGY CLI."""
+    agy_bin = get_agy_bin()
+    if not agy_bin:
+        logger.error("AGY CLI not found. Cannot fetch models.")
+        return []
+
     try:
         result = subprocess.run(
-            ["agy", "models"], 
+            [agy_bin, "models"], 
             capture_output=True, 
             text=True, 
             check=False
