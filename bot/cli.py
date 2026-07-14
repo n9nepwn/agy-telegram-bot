@@ -131,6 +131,28 @@ def cmd_setup(args):
     print_header("🛠  AGY Telegram Bot — Setup")
     print(f"  Project directory: {project_dir}\n")
 
+    # Check for AGY CLI
+    from bot.config import get_agy_bin
+    if not get_agy_bin():
+        print_error("AGY CLI is not installed or not found in PATH.")
+        print_info("The AGY Telegram Bot requires the native Antigravity CLI.")
+        choice = input("  │  Would you like to install it now via pip? [Y/n]: ").strip().lower()
+        if choice != 'n':
+            print_info("Installing google-antigravity...")
+            try:
+                subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "google-antigravity"], check=True)
+                print_success("AGY CLI installed successfully!")
+                if not get_agy_bin():
+                    print_error("AGY installed but not in PATH. Run `source ~/.profile` or restart terminal.")
+                    sys.exit(1)
+            except Exception as e:
+                print_error(f"Installation failed: {e}")
+                sys.exit(1)
+        else:
+            print_error("Cannot continue without AGY CLI. Exiting.")
+            sys.exit(1)
+    print()
+
     env_file = os.path.join(project_dir, ".env")
     env = {}
 
