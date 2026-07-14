@@ -143,9 +143,14 @@ def cmd_setup(args):
                 # Need shell=True to pipe curl to bash
                 subprocess.run("curl -fsSL https://antigravity.google/cli/install.sh | bash", shell=True, check=True)
                 print_success("AGY CLI installed successfully!")
-                if not get_agy_bin():
+                agy_bin = get_agy_bin()
+                if not agy_bin:
                     print_error("AGY installed but not in PATH. Run `source ~/.profile` or restart terminal.")
                     sys.exit(1)
+                
+                print_info("Starting AGY CLI for initial authentication...")
+                print_info("Once you are signed in, type 'exit' or press Ctrl+C to return to this setup.")
+                subprocess.run([agy_bin])
             except Exception as e:
                 print_error(f"Installation failed: {e}")
                 sys.exit(1)
